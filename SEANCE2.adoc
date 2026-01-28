@@ -125,7 +125,7 @@ if (App\Validator::isIpValid($ipTest)) {
 
 [NOTE]
 ====
-**A léloriser :**
+**A mémoriser :**
 
 * `->` : J'accède à quelque chose qui appartient à **mon** objet (mon prénom, mon IP).
 * `::` : J'accède à quelque chose qui appartient à **la classe** en général (un outil, une configuration globale).
@@ -171,7 +171,7 @@ Retournez dans `public/index.php`. Essayez de créer un serveur avec une mauvais
 
 [source,php]
 ----
-$srvHack = new App\Serveur("Hacker", "Ceci n'est pas une IP", "Windows");
+$srvHack = new Serveur("Hacker", "Ceci n'est pas une IP", "Windows");
 ----
 
 **Résultat attendu :** Votre page affiche une "Fatal Error" avec "Uncaught Exception".
@@ -225,6 +225,12 @@ echo "<p>Le script continue normalement après l'erreur...</p>";
 5.  L'exécution **sort immédiatement** du `try` et saute dans le `catch`.
 6.  Le message d'erreur s'affiche proprement.
 
+Rappel:
+Pour lancer et tester le programme, se placer dans le répertoire public et dans la fenêtre Terminal:
+
+php -S localhost:8000
+
+
 == Interaction : Formulaire de Saisie
 
 Arrêtons de coder les serveurs "en dur". Faisons une interface pour que l'Administrateur Système puisse ajouter lui-même des machines.
@@ -238,39 +244,50 @@ Dans `public/`, créez un fichier `ajouter_machine.php`.
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Ajouter une machine</title>
+    <title>Ajouter un Serveur</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        label { display:block; margin-top: 10px; }
-        input, select { margin-bottom: 10px; padding: 5px; width: 300px; display:block; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer;}
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto;}
+        label { display:block; margin-top: 15px; font-weight: bold;}
+        input, select { margin-bottom: 10px; padding: 8px; width: 100%; display:block; box-sizing: border-box;}
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 1.1em;}
+        button:hover { background: #218838; }
     </style>
 </head>
 <body>
-    <h2>Provisionner un nouveau Serveur</h2>
+<h2>🏭 Provisionner un Serveur Sécurisé</h2>
 
-    <form method="POST" action="traitement.php">
-        <label>Nom d'hôte (Hostname) :</label>
-        <input type="text" name="hostname" required placeholder="Ex: SRV-DB-02">
+<form method="POST" action="traitement.php">
+    <label>Nom d'hôte (Hostname) :</label>
+    <input type="text" name="hostname" required placeholder="Ex: SRV-DB-02 (Lettres, chiffres, tirets)">
 
-        <label>Adresse IP :</label>
-        <input type="text" name="ip" required placeholder="Ex: 192.168.1.50">
+    <label>Adresse IP :</label>
+    <input type="text" name="ip" required placeholder="Ex: 192.168.1.50">
 
-        <label>Système d'Exploitation :</label>
-        <select name="os">
-            <option value="Debian 12">Debian 12</option>
-            <option value="Ubuntu 22.04">Ubuntu 22.04</option>
-            <option value="Windows Server 2022">Windows Server 2022</option>
-        </select>
+    <label>Système d'Exploitation :</label>
+    <select name="os">
+        <option value="Debian 12">Debian 12</option>
+        <option value="Ubuntu 24.04">Ubuntu 24.04</option>
+        <option value="Windows Server 2022">Windows Server 2022</option>
+        <option value="RedHat 9">RedHat 9</option>
 
-        <button type="submit">Créer le serveur</button>
-    </form>
+        <option value="Windows XP">Windows XP (Interdit)</option>
+        <option value="TempleOS">TempleOS (Interdit)</option>
+    </select>
+
+    <button type="submit">Créer le serveur</button>
+</form>
 </body>
 </html>
 ----
 
 === Traitement des données
-Créez le fichier `public/traitement.php` qui va recevoir les données, utiliser nos classes et afficher le résultat.
+Créez le fichier `public/traitement.php`.
+Ce script va recevoir les données du formulaire, instancier la classe `Serveur` et afficher le résultat.
+
+[NOTE]
+====
+Pour l'instant, nous allons écrire le code naïvement, sans gestion d'erreur, pour voir ce qu'il se passe en cas de problème.
+====
 
 [source,php]
 ----
@@ -278,43 +295,109 @@ Créez le fichier `public/traitement.php` qui va recevoir les données, utiliser
 require '../vendor/autoload.php';
 use App\Serveur;
 
-// Vérification : est-ce qu'on vient bien du formulaire ?
+echo "<a href='ajouter_machine.php'>&larr; Retour au formulaire</a><hr>";
+
+// Vérification de la méthode d'envoi
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // Récupération des données du formulaire
+    // 1. Récupération des données
     $nom = $_POST['hostname'];
     $ip  = $_POST['ip'];
     $os  = $_POST['os'];
 
     echo "<h3>Résultat du provisionning :</h3>";
 
-    try {
-        // C'est ici que la magie de la POO opère.
-        // On tente de créer l'objet avec les données utilisateur.
-        // Si l'utilisateur a rentré n'importe quoi, le Constructeur lancera l'exception.
+    // 2. Tentative de création (Code "Naïf")
+    // ATTENTION : Si le constructeur lance une Exception, le script plantera ici !
+    $nouveauServeur = new Serveur($nom, $ip, $os);
 
-        $nouveauServeur = new Serveur($nom, $ip, $os);
-
-        echo "<div style='color:green; border: 2px solid green; padding: 20px;'>";
-        echo "✅ Succès ! <br>";
-        echo $nouveauServeur->afficherStatut();
-        echo "</div>";
-
-    } catch (Exception $e) {
-        // Gestion de l'erreur (IP invalide, etc.)
-        echo "<div style='color:red; border: 2px solid red; padding: 20px;'>";
-        echo "❌ Échec du déploiement : <br>";
-        echo "<strong>" . $e->getMessage() . "</strong>";
-        echo "</div>";
-    }
-
-    echo "<br><a href='ajouter_machine.php'>Retour au formulaire</a>";
+    // Si tout va bien, on affiche le succès
+    echo "<div style='color:green; border: 1px solid green; padding: 10px;'>";
+    echo "✅ Succès ! <br>";
+    echo $nouveauServeur->afficherStatut();
+    echo "</div>";
 
 } else {
-    // Si quelqu'un essaye d'accéder à cette page sans formulaire
+    // Redirection si accès direct sans POST
     header("Location: ajouter_machine.php");
+    exit();
 }
 ----
+
+== Mise en situation : Test et Crash
+
+C'est le moment de vérité. Nous allons vérifier que votre formulaire fonctionne et surtout, nous allons provoquer une erreur volontaire.
+
+=== Lancement du Serveur (Check-list)
+
+[IMPORTANT]
+.Règle d'or
+====
+Le terminal qui lance le serveur doit **rester ouvert** pendant tout le test. Si vous le fermez, le site devient inaccessible.
+====
+
+1.  **Ouvrez votre terminal** (PowerShell, Command Prompt ou Terminal PHPStorm).
+2.  **Vérifiez votre position :** Vous devez être à la racine du projet `MiniNagios`.
+3.  **Entrez dans le dossier public :**
++
+[source,bash]
+----
+cd public
+----
+4.  **Lancez le serveur PHP :**
++
+[source,bash]
+----
+php -S localhost:8000
+----
+5.  **Vérification :** Le terminal doit afficher quelque chose comme _"Development Server (http://localhost:8000) started"_.
+
+=== Accéder au bon fichier
+
+Attention, par défaut le navigateur cherche `index.php`. Nous voulons tester notre nouveau fichier.
+
+1.  Ouvrez votre navigateur (Chrome, Firefox...).
+2.  **Copiez-collez cette URL exacte** dans la barre d'adresse :
++
+`http://localhost:8000/ajouter_machine.php`
++
+_(Si vous tapez juste localhost:8000, vous retomberez sur l'exercice précédent !)_
+
+=== Le Scénario de Test (À faire dans l'ordre)
+
+Nous allons jouer deux scènes.
+
+**Scène 1 : L'Administrateur Modèle (Succès)**
+
+1.  Remplissez le formulaire avec des données valides :
+* Hostname : `SRV-WEB-02`
+* IP : `192.168.1.60`
+* OS : `Debian 12`
+2.  Cliquez sur **"Créer le serveur"**.
+3.  **Résultat attendu :** Une page s'affiche avec ✅ **Succès** et le détail de la machine.
+4.  Cliquez sur "Retour au formulaire".
+
+**Scène 2 : L'Administrateur Têtu (Le Crash)**
+C'est ici que nous testons votre sécurité.
+
+1.  Remplissez le formulaire pour piéger le système :
+* Hostname : `HACKED`
+* IP : `10.0.0.50`
+* OS : Choisissez **"Windows XP (Interdit)"** ou **"TempleOS"** dans la liste.
+2.  Cliquez sur **"Créer le serveur"**.
+3.  **Résultat attendu :**
+* Une erreur effrayante apparaît : `Fatal error: Uncaught Exception...`
+* C'est la preuve que votre classe `Serveur` a bien refusé l'OS invalide !
+* Mais pour l'utilisateur, c'est un écran de plantage. C'est inacceptable en production.
+
+=== À vous de réparer !
+
+Votre mission finale pour ce TP : transformer ce plantage (Fatal Error) en un message d'erreur propre.
+
+1.  Retournez dans le code de `public/traitement.php`.
+2.  Utilisez le bloc `try { ... } catch (Exception $e) { ... }` (vu en cours) pour encadrer la création de l'objet.
+3.  Une fois le code modifié, relancez le **Scénario 2**.
+4.  **Victoire :** La page ne plante plus, mais affiche un message rouge expliquant poliment le problème.
 
 == Exercices Pratiques
 
@@ -338,3 +421,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 3.  Si la validation échoue, lancez une Exception : "Un routeur doit avoir entre 1 et 128 ports".
 4.  Créez une page `ajouter_routeur.php` (copier-coller du formulaire serveur) pour tester cette fonctionnalité.
 
+=== Exercice 3 : Validation Stricte des Imprimantes (20 min)
+**Objectif :** Utiliser des tableaux pour restreindre les choix (Liste Blanche).
+
+Votre DSI a décidé que seules certaines technologies d'impression sont autorisées. Fini les imprimantes exotiques !
+
+1.  Dans la classe `Validator`, ajoutez une méthode statique `isPrinterTypeValid(string $type): bool`.
+* Cette méthode doit vérifier si le type donné existe dans ce tableau autorisé :
+`["Laser", "Jet d'encre", "Thermique", "Matricielle"]`
+* *Indice :* Utilisez la fonction PHP `in_array()`.
+2.  Modifiez le constructeur de la classe `Imprimante`.
+* Avant d'assigner `$this->type`, vérifiez sa validité via le Validator.
+* Si le type n'est pas autorisé, lancez une Exception : "Type d'imprimante non supporté".
+3.  Testez en essayant de créer une imprimante de type "3D" (ce qui doit échouer).
+
+=== Exercice 4 : Standardisation des OS Serveurs (20 min)
+**Objectif :** Appliquer une politique de conformité sur les Serveurs.
+
+Pour éviter que des administrateurs installent n'importe quoi (comme "Windows XP" ou "TempleOS"), nous allons filtrer les Systèmes d'Exploitation.
+
+1.  Dans la classe `Validator`, ajoutez une méthode `isOsSupported(string $os): bool`.
+* Liste autorisée : `["Debian 12", "Ubuntu 24.04", "Windows Server 2022", "RedHat 9"]`.
+2.  Ouvrez la classe `Serveur`.
+3.  Dans le constructeur, ajoutez l'appel à cette validation pour l'argument `$os`.
+4.  Si l'OS n'est pas dans la liste, l'Exception doit dire : "Politique DSI : L'OS '$os' est interdit."
+
+=== Exercice 5 : Sécurité du Switch et VLAN (20 min)
+**Objectif :** Valider une plage numérique (Range) sur un nouvel attribut.
+
+Les switchs doivent être configurés avec un VLAN de gestion (Management VLAN) pour être administrés à distance.
+
+1.  Modifiez la classe `SwitchReseau` pour ajouter un nouvel attribut privé : `int $vlanGestion`.
+2.  Mettez à jour le constructeur pour accepter cet argument supplémentaire :
+`public function __construct(string $hostname, string $ip, int $nbPorts, int $vlanGestion)`
+3.  Ajoutez une règle de validation **directement dans le constructeur** (ou via le Validator si vous préférez) :
+* Un ID de VLAN valide doit être compris entre **1 et 4094**.
+* Si ce n'est pas le cas, lancez une Exception.
+4.  Mettez à jour votre fichier `index.php` (ou le script de test) pour instancier un Switch avec un VLAN correct (ex: 10) et un incorrect (ex: 9999).
