@@ -1,0 +1,340 @@
+= SÉANCE 2 : Sécurité, Validation & Méthodes Statiques
+:author: Timothée Robert et les IA
+:toc: left
+:toc-title: Sommaire
+:icons: font
+:source-highlighter: highlightjs
+:imagesdir: images
+
+== Rappel du contexte "Mini-Nagios"
+
+Lors de la séance précédente, nous avons modélisé notre infrastructure réseau :
+
+* `EquipementReseau` (Parent)
+* `Serveur` et `Routeur` (Enfants)
+
+Cependant, nous avons un **problème de sécurité majeur**.
+Actuellement, un développeur peut créer un serveur avec une IP totalement bidon :
+
+`$srv = new Serveur("Web", "Patate", "Linux");`
+
+Notre application va planter plus tard, mais l'objet est créé quand même. Aujourd'hui, nous allons sécuriser la "porte d'entrée" de nos objets.
+
+== Le Concept : Méthodes Statiques (La Boîte à Outils)
+
+Avant de sécuriser nos classes, nous avons besoin d'outils de vérification.
+En POO, quand une méthode n'a pas besoin de connaitre les données spécifiques d'un objet (ni `$this->nom`, ni `$this->ip`), on dit qu'elle est **statique**.
+
+C'est comme un outil posé sur l'établi : tout le monde peut l'utiliser sans avoir besoin de construire un nouvel établi à chaque fois.
+
+=== Focus : Vocabulaire et Concepts
+
+Il est crucial de bien comprendre la terminologie. Vous entendrez souvent deux termes pour désigner la même chose.
+
+==== 1. Terminologie Exacte : Statique = Classe
+* **Dans le code (PHP) :** On utilise le mot-clé `static`. On parle donc de **"Méthode Statique"**.
+* **Dans la conception (UML) :** Le terme théorique est **"Méthode de Classe"** (par opposition à "Méthode d'Instance").
+
+[NOTE]
+.Retenez ceci
+====
+Les deux termes sont synonymes :
+
+* _"Méthode statique"_ décrit **comment** on la code.
+* _"Méthode de classe"_ décrit **à qui** elle appartient.
+====
+
+==== 2. Tableau Comparatif (Moyen mnémotechnique)
+
+[cols="1,2,2", options="header"]
+|===
+| Concept | Méthode d'Instance / Objet (Standard) | Méthode de Classe (Statique)
+
+| **C'est quoi ?**
+| Une action que fait **un objet précis**.
+| Une action que propose **la classe** (service général).
+
+| **Synonyme**
+| Méthode d'Objet
+| Méthode Statique
+
+| **Exemple**
+| `$voiture->demarrer()`
+| `Validator::checkIp()`
+
+| **Accès aux données**
+| Peut utiliser `$this` (Accède à ses propres données)
+| **INTERDIT** d'utiliser `$this` (Ne connait aucun objet)
+
+| **Opérateur PHP**
+| `->` (La flèche)
+| `::` (Les deux points)
+|===
+
+==== 3. L'Analogie de l'Atelier
+Pour visualiser la différence, imaginez une usine de voitures :
+
+* **L'Objet (La Voiture) :** Elle a ses propres options (couleur, moteur). Pour la démarrer, nous devons monter dans *cette* voiture précise (`$maVoiture->demarrer()`).
+* **La Classe (L'Usine) :** Elle possède des plans et des outils fixés aux murs.
+* **Le Statique (L'Outil) :** Un outil de contrôle (ex: un mètre ruban) posé sur l'établi appartient à l'usine. Je n'ai pas besoin de construire une nouvelle voiture pour utiliser le mètre ruban. Je le prends directement sur l'établi (`Usine::prendreMetre()`).
+
+== Création de la classe Validator
+Nous allons créer une classe qui ne sert qu'à valider des données.
+
+.   Dans `src/`, créez le fichier `Validator.php`.
+
+[source,php]
+----
+<?php
+namespace App;
+
+class Validator
+{
+    /**
+     * Vérifie si une chaîne ressemble à une IP v4 valide.
+     * Cette méthode est STATIQUE (mot clé static).
+     * On l'appelle directement par la Classe, pas par un objet.
+     */
+    public static function isIpValid(string $ip): bool
+    {
+        // filter_var est une fonction native de PHP très puissante pour la sécurité
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+----
+
+=== 1.2. Test rapide
+Dans votre fichier `public/index.php`, testez cette méthode tout au début (après l'autoload) :
+
+[source,php]
+----
+// Appel d'une méthode statique avec "::" (Les deux points Paamayim Nekudotayim)
+// Pas de "new Validator()", c'est inutile !
+
+$ipTest = "999.0.0.1";
+if (App\Validator::isIpValid($ipTest)) {
+    echo "IP Valide";
+} else {
+    echo "IP Invalide (Sécurité activée)";
+}
+----
+
+[NOTE]
+====
+**A léloriser :**
+
+* `->` : J'accède à quelque chose qui appartient à **mon** objet (mon prénom, mon IP).
+* `::` : J'accède à quelque chose qui appartient à **la classe** en général (un outil, une configuration globale).
+====
+
+== Sécurisation : Le "Fail Fast" (Échouer vite)
+
+Maintenant que nous avons notre outil de validation, nous allons modifier la classe mère `EquipementReseau` pour interdire la création d'un équipement si l'IP est mauvaise.
+
+Nous allons utiliser les **Exceptions**. Une Exception est un interrupteur qui permet d' arrêter le programme quand une erreur grave survient.
+
+=== Modification du Constructeur
+Ouvrez `src/EquipementReseau.php` et modifiez le constructeur.
+
+[source,php]
+----
+    // ... namespace et attributs ...
+
+    public function __construct(string $hostname, string $ip)
+    {
+        // ÉTAPE 1 : Validation défensive
+        // Avant même d'assigner quoi que ce soit, on vérifie !
+        if (!Validator::isIpValid($ip)) {
+            // Si l'IP est pourrie, on lance une Exception (une erreur fatale contrôlée)
+            throw new \Exception("ERREUR DE SÉCURITÉ : L'IP '$ip' n'est pas valide !");
+        }
+
+        // ÉTAPE 2 : Assignation (seulement si l'étape 1 est passée)
+        $this->hostname = $hostname;
+        $this->ip = $ip;
+    }
+
+    // ... reste de la classe ...
+----
+
+[IMPORTANT]
+====
+Notez le `\Exception`. Le backslash `\` devant indique qu'on utilise la classe Exception **native de PHP**, et non pas une classe qui serait dans notre namespace `App`.
+====
+
+=== Test du crash
+Retournez dans `public/index.php`. Essayez de créer un serveur avec une mauvaise IP.
+
+[source,php]
+----
+$srvHack = new App\Serveur("Hacker", "Ceci n'est pas une IP", "Windows");
+----
+
+**Résultat attendu :** Votre page affiche une "Fatal Error" avec "Uncaught Exception".
+C'est une **bonne nouvelle** ! Cela veut dire que votre classe refuse désormais de créer des objets corrompus.
+
+== Gestion des Erreurs (Try / Catch)
+
+Une page qui plante avec une erreur fatale, ça fait peur aux utilisateurs. Nous allons "attraper" (Catch) l'erreur pour l'afficher proprement.
+
+Modifiez `public/index.php` pour envelopper vos créations d'objets dans un bloc de sécurité.
+
+[source,php]
+----
+<?php
+require '../vendor/autoload.php';
+
+use App\Serveur;
+use App\Routeur;
+
+echo "<h1>Console de Supervision</h1>";
+
+try {
+    // ON ESSAYE (TRY) d'exécuter ce code dangereux
+
+    $srvWeb = new Serveur("SRV-WEB", "192.168.1.10", "Debian");
+    echo "<div style='color:green'>✅ " . $srvWeb->afficherStatut() . "</div>";
+
+    // Tentative de création avec erreur
+    echo "Tentative de création du serveur corrompu...<br>";
+    $srvBad = new Serveur("SRV-BAD", "999.999.999.999", "Windows");
+    // La ligne ci-dessous ne sera JAMAIS exécutée car ça plante juste avant
+    echo "Ce message ne s'affichera pas.";
+
+} catch (Exception $e) {
+    // SI UNE ERREUR SURVIENT, on tombe ici
+    // $e contient les infos sur l'erreur
+    echo "<div style='background-color:#ffcccc; padding:10px; border:1px solid red; margin:10px;'>";
+    echo "<strong>🛑 ALERTE SYSTÈME :</strong> " . $e->getMessage();
+    echo "</div>";
+}
+
+echo "<p>Le script continue normalement après l'erreur...</p>";
+----
+
+**Analysez le flux :**
+
+1.  Le code commence dans le `try`.
+2.  Le premier serveur est créé (OK).
+3.  Le deuxième serveur tente d'être créé.
+4.  Le constructeur de `EquipementReseau` voit l'erreur et fait `throw new Exception`.
+5.  L'exécution **sort immédiatement** du `try` et saute dans le `catch`.
+6.  Le message d'erreur s'affiche proprement.
+
+== Interaction : Formulaire de Saisie
+
+Arrêtons de coder les serveurs "en dur". Faisons une interface pour que l'Administrateur Système puisse ajouter lui-même des machines.
+
+=== Création du formulaire
+Dans `public/`, créez un fichier `ajouter_machine.php`.
+
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter une machine</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        label { display:block; margin-top: 10px; }
+        input, select { margin-bottom: 10px; padding: 5px; width: 300px; display:block; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <h2>Provisionner un nouveau Serveur</h2>
+
+    <form method="POST" action="traitement.php">
+        <label>Nom d'hôte (Hostname) :</label>
+        <input type="text" name="hostname" required placeholder="Ex: SRV-DB-02">
+
+        <label>Adresse IP :</label>
+        <input type="text" name="ip" required placeholder="Ex: 192.168.1.50">
+
+        <label>Système d'Exploitation :</label>
+        <select name="os">
+            <option value="Debian 12">Debian 12</option>
+            <option value="Ubuntu 22.04">Ubuntu 22.04</option>
+            <option value="Windows Server 2022">Windows Server 2022</option>
+        </select>
+
+        <button type="submit">Créer le serveur</button>
+    </form>
+</body>
+</html>
+----
+
+=== Traitement des données
+Créez le fichier `public/traitement.php` qui va recevoir les données, utiliser nos classes et afficher le résultat.
+
+[source,php]
+----
+<?php
+require '../vendor/autoload.php';
+use App\Serveur;
+
+// Vérification : est-ce qu'on vient bien du formulaire ?
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+    // Récupération des données du formulaire
+    $nom = $_POST['hostname'];
+    $ip  = $_POST['ip'];
+    $os  = $_POST['os'];
+
+    echo "<h3>Résultat du provisionning :</h3>";
+
+    try {
+        // C'est ici que la magie de la POO opère.
+        // On tente de créer l'objet avec les données utilisateur.
+        // Si l'utilisateur a rentré n'importe quoi, le Constructeur lancera l'exception.
+
+        $nouveauServeur = new Serveur($nom, $ip, $os);
+
+        echo "<div style='color:green; border: 2px solid green; padding: 20px;'>";
+        echo "✅ Succès ! <br>";
+        echo $nouveauServeur->afficherStatut();
+        echo "</div>";
+
+    } catch (Exception $e) {
+        // Gestion de l'erreur (IP invalide, etc.)
+        echo "<div style='color:red; border: 2px solid red; padding: 20px;'>";
+        echo "❌ Échec du déploiement : <br>";
+        echo "<strong>" . $e->getMessage() . "</strong>";
+        echo "</div>";
+    }
+
+    echo "<br><a href='ajouter_machine.php'>Retour au formulaire</a>";
+
+} else {
+    // Si quelqu'un essaye d'accéder à cette page sans formulaire
+    header("Location: ajouter_machine.php");
+}
+----
+
+== Exercices Pratiques
+
+=== Exercice 1 : Validation des Hostnames (20 min)
+**Objectif :** Enrichir le Validator et les règles métiers.
+
+1.  Dans la classe `Validator`, ajoutez une méthode statique `isHostnameValid(string $hostname): bool`.
+* Règle : Le hostname doit contenir **uniquement** des lettres majuscules/minuscules, des chiffres et des tirets `-`. Pas d'espaces, pas d'accents.
+* *Indice :* Utilisez une Regex (Expression Régulière) ou `preg_match`.
+* *Regex suggérée :* `/^[a-zA-Z0-9-]+$/`
+2.  Modifiez le constructeur de `EquipementReseau` pour utiliser cette nouvelle validation. Si le hostname est invalide, lancez une Exception.
+3.  Testez via le formulaire avec un nom comme "SRV WEB" (avec espace) -> Cela doit échouer.
+
+=== Exercice 2 : Filtrage du Routeur (30 min)
+**Objectif :** Appliquer la logique au Routeur.
+
+1.  Modifiez le constructeur de la classe `Routeur`.
+2.  Ajoutez une vérification sur le `$nbPorts`.
+* Le nombre de ports doit être **positif** (supérieur à 0).
+* Il ne doit pas dépasser 128 (limite physique arbitraire).
+3.  Si la validation échoue, lancez une Exception : "Un routeur doit avoir entre 1 et 128 ports".
+4.  Créez une page `ajouter_routeur.php` (copier-coller du formulaire serveur) pour tester cette fonctionnalité.
+
