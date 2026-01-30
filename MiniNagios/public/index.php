@@ -6,6 +6,7 @@ require '../vendor/autoload.php';
 use App\Serveur;
 use App\Routeur;
 use App\Imprimante ;
+use App\SwitchReseau ;
 
 // 3. Instanciation des objets
 // On crée des objets concrets avec le mot clé "new"
@@ -17,6 +18,8 @@ $monRouteur    = new Routeur("RTR-CORE", "10.0.0.1", 24);
 $imprimpeHP = new Imprimante("Laser",false,"192.168.1.23","HP-Etage-1" );
 $imprimeCanon = new Imprimante("Jet d'encre",true, "192.168.1.24" , "Canon-Direction") ;
 
+$monSwitch = new SwitchReseau("SW-Principal", "10.0.210.6", 24) ;
+
 // 4. Utilisation des objets
 echo "<h1>Tableau de bord Mini-Nagios</h1>";
 
@@ -25,6 +28,8 @@ echo "<p>" . $monServeurAD->afficherStatut() . "</p>";
 echo "<p>" . $monRouteur->afficherStatut() . "</p>";
 echo "<p>" . $imprimpeHP->afficherStatut() . "</p>";
 echo "<p>" . $imprimeCanon->afficherStatut() . "</p>";
+echo "<p>" . $monSwitch->scannerPorts() . "</p>";
+
 
 
 // Debug pour voir la structure réelle de l'objet
