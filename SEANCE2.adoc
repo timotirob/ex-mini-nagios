@@ -382,12 +382,12 @@ C'est ici que nous testons votre sécurité.
 
 1.  Remplissez le formulaire pour piéger le système :
 * Hostname : `HACKED`
-* IP : `10.0.0.50`
-* OS : Choisissez **"Windows XP (Interdit)"** ou **"TempleOS"** dans la liste.
+* IP : `10.0.0.500`
+* OS : Choisissez ce que vous voulez dans la liste.
 2.  Cliquez sur **"Créer le serveur"**.
 3.  **Résultat attendu :**
 * Une erreur effrayante apparaît : `Fatal error: Uncaught Exception...`
-* C'est la preuve que votre classe `Serveur` a bien refusé l'OS invalide !
+* C'est la preuve que votre classe `Serveur` a bien refusé l'IP invalide !
 * Mais pour l'utilisateur, c'est un écran de plantage. C'est inacceptable en production.
 
 === À vous de réparer !
