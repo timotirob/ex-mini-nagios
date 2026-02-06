@@ -3,9 +3,14 @@ namespace App ;
 
 class SwitchReseau extends EquipementReseau {
     private int $nombrePorts = 24 ;
-
-    public function __construct(string $hostname, string $ip, int $nombrePorts) {
+    private int $vlanGestion;
+    public function __construct(string $hostname, string $ip, int $nombrePorts , int $vlanGestion) {
+        if ($vlanGestion < 1 || $vlanGestion > 4094) {
+            // Si le nombre de ^ports est trop petit ou trop grand
+            throw new \Exception("ERREUR CONFIGURATION : le nombre de VLAN n'est pas valide. Ici vous demandez $vlanGestion pas correct.");
+        }
         $this->nombrePorts = $nombrePorts ;
+        $this->vlanGestion = $vlanGestion ;
         parent::__construct($hostname, $ip);
 
     }
