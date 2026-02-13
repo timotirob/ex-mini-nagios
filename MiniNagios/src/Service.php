@@ -7,7 +7,10 @@ class Service
     private int $port;
     private bool $estDemarre; // État du service (Allumé/Éteint)
 
-    public function __construct(string $nom, int $port)
+    private bool $estCritique ;
+
+
+    public function __construct(string $nom, int $port, bool $critique)
     {
 
         Validator::verifieNbPorts($port) ;
@@ -15,8 +18,18 @@ class Service
 
 
         $this->nom = $nom;
+        $this->estCritique = $critique;
         $this->estDemarre = false; // Par défaut, un service est éteint
     }
+
+    public function estCritique(): bool {
+        return $this->estCritique;
+    }
+
+    public function estDemarre(): bool {
+        return $this->estDemarre;
+    }
+
 
     public function demarrer(): void
     {
