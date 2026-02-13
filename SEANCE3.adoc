@@ -128,7 +128,7 @@ class Service
 
 == Intégration : Modifier le Serveur
 
-Maintenant, nous devons rendre notre `Serveur` capable d'accueillir ces `Service`s.
+Maintenant, nous devons rendre notre `Serveur` capable d'accueillir ces `Services`.
 
 === Modification de `src/Serveur.php`
 Ouvrez votre classe `Serveur` existante et modifiez-la pour ajouter la gestion des services.
@@ -191,7 +191,7 @@ Vous allez assembler les pièces du puzzle.
 === Exercice 1 : Le Déploiement (20 min)
 **Objectif :** Instancier des services et les "clipser" sur des serveurs via la composition.
 
-Dans `public/index.php` (vous pouvez nettoyer le code des séances précédentes) :
+Dans `public` vous pouvez ajouter un nouveau fichier `deploiement.php`  :
 
 1.  Créez un serveur "SRV-WEB-01" (Debian).
 2.  Créez un objet Service "Apache" sur le port 80.
@@ -227,7 +227,7 @@ On veut que le Serveur change d'état global si un de ses services est critique.
 * Si un service est marqué "Critique" ET qu'il est "Éteint" -> Retournez "DANGER 🔴".
 * Sinon -> Retournez "OK 🟢".
 
-3.  Testez dans `index.php` :
+3.  Testez dans `deploiement.php` :
 * Éteignez Apache sur le serveur Web (alors qu'il est critique).
 * Appelez `verifierSante()`. Cela doit afficher DANGER.
 
