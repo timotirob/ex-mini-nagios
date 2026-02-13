@@ -6,7 +6,7 @@
 :source-highlighter: highlightjs
 :imagesdir: images
 
-==Le Piège de l'Héritage ("L'Enfer des Classes")
+== Le Piège de l'Héritage ("L'Enfer des Classes")
 
 Jusqu'ici, nous avons utilisé l'héritage (`extends`) pour spécialiser nos équipements.
 
