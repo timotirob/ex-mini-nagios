@@ -27,18 +27,30 @@ En PHP, l'héritage multiple est impossible (`class SuperServeur extends Serveur
 On finirait avec une structure monstrueuse et ingérable comme celle-ci :
 
 .Diagramme de l'Enfer de l'Héritage
-[mermaid]
+[plantuml]
 ....
-classDiagram
-    Equipement <|-- Serveur
-    Serveur <|-- ServeurWeb
-    Serveur <|-- ServeurSQL
-    Serveur <|-- ServeurFTP
-    Serveur <|-- ServeurWeb_Et_SQL
-    Serveur <|-- ServeurWeb_Et_FTP
-    Serveur <|-- ServeurSQL_Et_FTP
-    Serveur <|-- Serveur_Tout_En_Un
-    note "Explosion combinatoire !\nImpossible à maintenir."
+@startuml
+skinparam handwritten false
+skinparam classAttributeIconSize 0
+
+class Equipement
+
+Equipement <|-- Serveur
+
+Serveur <|-- ServeurWeb
+Serveur <|-- ServeurSQL
+Serveur <|-- ServeurFTP
+
+Serveur <|-- ServeurWeb_Et_SQL
+Serveur <|-- ServeurWeb_Et_FTP
+Serveur <|-- ServeurSQL_Et_FTP
+Serveur <|-- Serveur_Tout_En_Un
+
+note right of Serveur_Tout_En_Un
+<b>Explosion combinatoire !</b>
+Impossible à maintenir en BTS SIO.
+end note
+@enduml
 ....
 
 == La Solution : La Composition ("A un" vs "Est un")
