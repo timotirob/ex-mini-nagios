@@ -70,6 +70,10 @@ class Serveur extends EquipementReseau
         return $this->maintenance;
     }
 
+    public function recupereServices(){
+        return $this->services;
+    }
+
     public function activerMaintenance(): void {
         $this->maintenance = true;
     }
